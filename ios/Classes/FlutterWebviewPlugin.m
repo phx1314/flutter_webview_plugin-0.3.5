@@ -3,7 +3,7 @@
 static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
 
 // UIWebViewDelegate
-@interface FlutterWebviewPlugin() <WKNavigationDelegate, UIScrollViewDelegate, WKUIDelegate> {
+@interface FlutterWebviewPlugin() <WKNavigationDelegate, UIScrollViewDelegate, WKUIDelegate, WKScriptMessageHandler> {
     BOOL _enableAppScheme;
     BOOL _enableZoom;
     NSString* _invalidUrlRegex;
@@ -85,6 +85,7 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
     NSNumber *withZoom = call.arguments[@"withZoom"];
     NSNumber *scrollBar = call.arguments[@"scrollBar"];
     NSNumber *withJavascript = call.arguments[@"withJavascript"];
+
     _invalidUrlRegex = call.arguments[@"invalidUrlRegex"];
 
     if (clearCache != (id)[NSNull null] && [clearCache boolValue]) {
@@ -107,7 +108,21 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
         rc = self.viewController.view.bounds;
     }
 
-    self.webview = [[WKWebView alloc] initWithFrame:rc];
+    WKWebViewConfiguration *config = [WKWebViewConfiguration new];
+    config.preferences = [WKPreferences new];
+    config.preferences.minimumFontSize = 10;
+    config.preferences.javaScriptEnabled = YES;
+    config.preferences.javaScriptCanOpenWindowsAutomatically = NO;
+    WKUserContentController *userContentController = [[WKUserContentController alloc] init];
+    // 注入js适配js调用本地代码
+    NSString *source = @"var JinQuMobile = {};JinQuMobile.callBack = function(obj){window.webkit.messageHandlers.callBack.postMessage(obj)}";
+    WKUserScript *userScript = [[WKUserScript alloc] initWithSource:source injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+    [userContentController addUserScript:userScript];
+    // 监听js call method
+    [userContentController addScriptMessageHandler:[[WeakScriptMessageDelegate alloc] initWithDelegate:self] name:@"callBack"];
+    config.userContentController = userContentController;
+    
+    self.webview = [[WKWebView alloc] initWithFrame:rc configuration:config];
     self.webview.UIDelegate = self;
     self.webview.navigationDelegate = self;
     self.webview.scrollView.delegate = self;
@@ -117,12 +132,13 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
     
     [self.webview addObserver:self forKeyPath:@"estimatedProgress" options:NSKeyValueObservingOptionNew context:NULL];
 
-    WKPreferences* preferences = [[self.webview configuration] preferences];
-    if ([withJavascript boolValue]) {
-        [preferences setJavaScriptEnabled:YES];
-    } else {
-        [preferences setJavaScriptEnabled:NO];
-    }
+//
+//    WKPreferences* preferences = [[self.webview configuration] preferences];
+//    if ([withJavascript boolValue]) {
+//        [preferences setJavaScriptEnabled:YES];
+//    } else {
+//        [preferences setJavaScriptEnabled:NO];
+//    }
 
     _enableZoom = [withZoom boolValue];
 
@@ -132,6 +148,7 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
 
     [self navigate:call];
 }
+
 
 - (CGRect)parseRect:(NSDictionary *)rect {
     return CGRectMake([[rect valueForKey:@"left"] doubleValue],
@@ -207,6 +224,7 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
         [self.webview removeFromSuperview];
         self.webview.navigationDelegate = nil;
         [self.webview removeObserver:self forKeyPath:@"estimatedProgress"];
+        [[self.webview configuration].userContentController removeScriptMessageHandlerForName:@"callBack"];
         self.webview = nil;
 
         // manually trigger onDestroy
@@ -336,6 +354,20 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
         [channel invokeMethod:@"onHttpError" arguments:@{@"code": [NSString stringWithFormat:@"%ld", response.statusCode], @"url": webView.URL.absoluteString}];
     }
     decisionHandler(WKNavigationResponsePolicyAllow);
+}
+
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    __weak __typeof(&*self)weakSelf = self
+    NSLog(@"JS 调用了 %@ 方法，传回参数 %@", message.name, message.body);
+    NSData *data = [message.body dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    NSString *type = [dic objectForKey:@"type"];
+    if ([message.name isEqualToString:@"callBack"]) {
+        __block NSString *callbackMethodName = [dic objectForKey:@"Method"];
+        if ([type isEqualToString:@"001"]) {
+            
+        }
+    }
 }
 
 #pragma mark -- UIScrollViewDelegate
