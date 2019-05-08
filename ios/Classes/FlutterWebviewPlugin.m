@@ -358,14 +358,14 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
 }
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
-    UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"" message:@"请输入文件夹名" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
-    [alertView show];
+    //UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"" message:@"请输入文件夹名" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+    //[alertView show];
     NSLog(@"JS 调用了 %@ 方法，传回参数 %@", message.name, message.body);
     NSData *data = [message.body dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     NSString *type = [dic objectForKey:@"type"];
     if ([message.name isEqualToString:@"callBack"]) {
-     [channel invokeMethod:@"onChannel" arguments:@{@"json": @"的撒打算"}];
+     [channel invokeMethod:@"onChannel" arguments:@{@"json": @(data)}];
         __block NSString *callbackMethodName = [dic objectForKey:@"Method"];
         if ([type isEqualToString:@"001"]) {
             
