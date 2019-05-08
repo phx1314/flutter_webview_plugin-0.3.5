@@ -358,11 +358,8 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
 }
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"111111" message:message preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        completionHandler();
-    }]];
-    [self presentViewController:alert animated:YES completion:NULL];
+    UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"" message:@"请输入文件夹名" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+    [alertView show];
     NSLog(@"JS 调用了 %@ 方法，传回参数 %@", message.name, message.body);
     NSData *data = [message.body dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
