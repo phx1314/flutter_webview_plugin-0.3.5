@@ -365,6 +365,7 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
     NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     NSString *type = [dic objectForKey:@"type"];
     if ([message.name isEqualToString:@"callBack"]) {
+    [[channel invokeMethod:@"onChannel" arguments:@{@"json": @data}];
         __block NSString *callbackMethodName = [dic objectForKey:@"Method"];
         if ([type isEqualToString:@"001"]) {
             
