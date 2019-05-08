@@ -1,4 +1,5 @@
 #import "FlutterWebviewPlugin.h"
+#import "WeakScriptMessageDelegate.h"
 
 static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
 
@@ -107,7 +108,7 @@ static NSString *const CHANNEL_NAME = @"flutter_webview_plugin";
     } else {
         rc = self.viewController.view.bounds;
     }
-
+    
     WKWebViewConfiguration *config = [WKWebViewConfiguration new];
     config.preferences = [WKPreferences new];
     config.preferences.minimumFontSize = 10;
